@@ -232,8 +232,42 @@ class ColoredDoorKey_Planner(Base_Planner):
         for i in range(len(color_words)):
             plans = plans.replace(color_index[i], color_words[i])
         plans = eval(plans)
-
+        
         return plans, probs
+
+    def replace_color(text) :
+        pattern= r'\b(blue|green|grey|purple|red|yellow)\b'
+        color_words = re.findall(pattern, text)
+
+        words = list(set(color_words))
+        words.sort(key=color_words.index)
+        color_words = words
+        color_index =['color1','color2']
+        if color_words != []:
+            for i in range(len(color_words)):
+                text = text.replace(color_words[i], color_index[i])
+                
+        return text
+
+    def __call__(self, obs):
+        # self.mediator.reset()
+        text = self.mediator.RL2LLM(obs)
+        text = self.replace_color(text)
+        l_choices = self.choices[text]
+        s_choices = '['
+        for i in l_choices:
+            i = f"'{i}', "
+            s_choices += i
+        s_choices += ']'
+        addition_string = f"Choose the next rational action from {s_choices}."
+        text += addition_string
+        plans, probs = self.plan(text)
+        self.dialogue_user = text + "\n" + str(plans) + "\n" + str(probs)
+        if self.show_dialogue:
+            print(self.dialogue_user)
+        skill_list, probs = self.mediator.LLM2RL(plans, probs)
+        
+        return skill_list, probs
 
 
 class TwoDoor_Planner(Base_Planner):

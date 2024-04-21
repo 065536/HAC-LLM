@@ -140,7 +140,7 @@ class Base_Planner(ABC):
             i = f"'{i}', "
             s_choices += i
         s_choices += ']'
-        addition_string = f"Choose the next rational action from {s_choices}."
+        addition_string = f"Choose the next rational action from {s_choices}. No further explanation."
         text += addition_string
         plans, probs = self.plan(text)
         self.dialogue_user = text + "\n" + str(plans) + "\n" + str(probs)

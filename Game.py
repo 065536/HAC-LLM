@@ -235,7 +235,7 @@ class Game:
                 teacher_value_updated = self.teacher_value_network.update_value(next_obs, reward, self.max_ep_len)
 
                 # update teacher value network
-                teacher_loss = self.teacher_value_network.train_step(obs, teacher_value_updated)
+                teacher_loss = self.teacher_value_network.train_step(torch.Tensor(obs).to(self.device), teacher_value_updated)
                 self.logger.add_scalar("Teacher loss", teacher_loss, self.itr)
 
                 # store in buffer

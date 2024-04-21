@@ -193,7 +193,7 @@ class Critic(NNBase):
     
     def update_value(self, next_obs, reward, upp):
         v_next = self.forward(next_obs)
-        updated_values = min(max(reward + self.gamma * v_next, 0), upp)
+        updated_values = np.minimum(np.maximum(reward + self.gamma * v_next, 0), upp)
         return updated_values
     
     def train_step(self, states, next_state_values):

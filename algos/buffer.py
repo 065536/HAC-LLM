@@ -56,6 +56,7 @@ class Buffer:
         self.values  = []
         self.log_probs = []
         self.teacher_probs = []
+        self.teacher_values = []
 
         self.ptr = 0
         self.traj_idx = [0]
@@ -63,7 +64,7 @@ class Buffer:
         self.ep_returns = [] # for logging
         self.ep_lens    = []
 
-    def store(self, state, action, reward, value, log_probs, teacher_probs):
+    def store(self, state, action, reward, value, log_probs, teacher_probs, teacher_values):
         """
         Append one timestep of agent-environment interaction to the buffer.
         """
@@ -75,6 +76,7 @@ class Buffer:
         self.values  += [value.squeeze()]
         self.log_probs += [log_probs.squeeze()]
         self.teacher_probs += [teacher_probs]
+        self.teacher_values += [teacher_values]
         self.ptr += 1
 
     def finish_path(self, last_val=None):
@@ -98,7 +100,8 @@ class Buffer:
             np.array(self.returns),
             np.array(self.values),
             np.array(self.log_probs),
-            np.array(self.teacher_probs)
+            np.array(self.teacher_probs),
+            np.array(self.teacher_values)
         )
 
     def sample(self, batch_size=64, recurrent=False):
@@ -121,7 +124,7 @@ class Buffer:
             random_indices = SubsetRandomSampler(range(self.ptr))
             sampler = BatchSampler(random_indices, batch_size, drop_last=True)
 
-        observations, actions, returns, values, log_probs, teacher_probs = map(torch.Tensor, self.get())
+        observations, actions, returns, values, log_probs, teacher_probs, teacher_values = map(torch.Tensor, self.get())
 
         advantages = returns - values
         advantages = (advantages - advantages.mean()) / (advantages.std() + 1e-5)
@@ -136,6 +139,7 @@ class Buffer:
                 mask            = [torch.ones_like(r) for r in return_batch]
                 log_prob_batch  = [log_probs[self.traj_idx[i]:self.traj_idx[i+1]] for i in indices]
                 teacher_prob_batch  = [teacher_probs[self.traj_idx[i]:self.traj_idx[i+1]] for i in indices]
+                teacher_value_batch = [teacher_values[self.traj_idx[i]:self.traj_idx[i+1]] for i in indices]
 
                 obs_batch       = pad_sequence(obs_batch, batch_first=False) # [unroll_length, num_trajs, ...]
                 action_batch    = pad_sequence(action_batch, batch_first=False).flatten(0,1)
@@ -145,6 +149,7 @@ class Buffer:
                 mask            = pad_sequence(mask, batch_first=False).flatten(0,1)
                 log_prob_batch  = pad_sequence(log_prob_batch, batch_first=False).flatten(0,1)
                 teacher_prob_batch = pad_sequence(teacher_prob_batch, batch_first=False).flatten(0,1)
+                teacher_value_batch =  pad_sequence(teacher_value_batch, batch_first=False).flatten(0,1)
             else:
                 obs_batch       = observations[indices]
                 action_batch    = actions[indices]
@@ -154,6 +159,7 @@ class Buffer:
                 mask            = torch.FloatTensor([1])
                 log_prob_batch  = log_probs[indices]
                 teacher_prob_batch = teacher_probs[indices]
+                teacher_value_batch = teacher_value_batch[indices]
 
 
-            yield obs_batch.to(self.device), action_batch.to(self.device), return_batch.to(self.device), advantage_batch.to(self.device), values_batch.to(self.device), mask.to(self.device), log_prob_batch.to(self.device), teacher_prob_batch.to(self.device)
+            yield obs_batch.to(self.device), action_batch.to(self.device), return_batch.to(self.device), advantage_batch.to(self.device), values_batch.to(self.device), mask.to(self.device), log_prob_batch.to(self.device), teacher_prob_batch.to(self.device), teacher_value_batch.to(self.device)

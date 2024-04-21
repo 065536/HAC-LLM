@@ -78,7 +78,7 @@ class PPO(Base):
         
         for _ in range(self.epochs):
             for batch in buffer.sample(self.batch_size, self.recurrent):
-                obs_batch, action_batch, return_batch, advantage_batch, values_batch, mask, log_prob_batch, teacher_prob_batch = batch
+                obs_batch, action_batch, return_batch, advantage_batch, values_batch, mask, log_prob_batch, teacher_prob_batch, teacher_value_batch = batch
                 
                 # get policy
                 states = self.model.init_states(self.device, obs_batch.size()[1]) if self.recurrent else None
@@ -97,8 +97,11 @@ class PPO(Base):
                 surr1 = ((value - return_batch)*mask).pow(2)
                 surr2 = ((value_clipped - return_batch)*mask).pow(2)
                 value_loss = torch.max(surr1, surr2).mean()
+
+                value_dis_clipped = torch.clamp(teacher_value_batch - values_batch, -self.clip, self.clip)
+                value_dis_loss = value_dis_clipped.mean()
                 
-                loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_loss
+                loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_loss + self.value_loss_coef * value_dis_loss
                 if self.iter < self.iter_with_ks:
                     loss += self.ks_coef * kickstarting_loss
 

@@ -21,6 +21,8 @@ import skill
 import utils
 import cv2
 from teacher_policy import TeacherPolicy
+import copy
+from algos import *
 
 prefix = os.getcwd()
 task_info_json = os.path.join(prefix, "prompt/task_info.json")
@@ -58,7 +60,11 @@ class Game:
                                         self.logger.dir, 
                                         batch_size=self.batch_size, 
                                         recurrent=self.recurrent)
-        
+        self.teacher_value_network = algos.Critic(self.obs_space,
+                                          self.action_space,
+                                         )
+        self.teacher_value_network.load_state_dict(self.student_policy.critic.state_dict())
+
         # init buffer
         self.gamma = args.gamma
         self.lam = args.lam
@@ -102,6 +108,7 @@ class Game:
     def train(self):
         start_time = time.time()
         for itr in range(self.n_itr):
+            self.itr = itr
             print("********** Iteration {} ************".format(itr))
             print("time elapsed: {:.2f} s".format(time.time() - start_time))
 
@@ -225,14 +232,21 @@ class Game:
                 
                 # interact with env
                 next_obs, reward, done, info = self.env.step(action)
-    
+                teacher_value = self.teacher_value_network(obs)
+                teacher_value_updated = self.teacher_value_network.update_value(next_obs, reward, self.max_ep_len)
+
+                # update teacher value network
+                teacher_loss = self.teacher_value_network.train_step(obs, teacher_value_updated)
+                self.logger.add_scalar("Teacher loss", teacher_loss, self.itr)
+
                 # store in buffer
                 self.buffer.store(obs, 
                                   action, 
                                   reward, 
                                   value.to("cpu").numpy(), 
                                   log_probs.to("cpu").numpy(), 
-                                  teacher_probs)
+                                  teacher_probs,
+                                  teacher_value.to("cpu").numpy())
                 obs = next_obs
                 ep_len += 1
             if done:
@@ -240,6 +254,8 @@ class Game:
             else:
                 value = self.student_policy(torch.Tensor(obs).to(self.device), 
                                             mask, states)[1].to("cpu").item()
+                
+                
             self.buffer.finish_path(last_val=value)
         
         

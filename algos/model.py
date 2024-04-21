@@ -13,7 +13,7 @@ import torch.nn as nn
 from torch.distributions.categorical import Categorical
 import torch.nn.functional as F
 import numpy as np
-
+import torch.optim as optim
 
 class NNBase(nn.Module):
     def __init__(self, obs_space, action_space):
@@ -162,3 +162,45 @@ class LSTMBase(NNBase):
         value = self.critic(core_output).squeeze(1)
 
         return dist, value, states
+
+
+class Critic(nn.Module):
+    def __init__(self, obs_space, action_space):
+        embedding_size, action_space = super().__init__(obs_space, action_space)
+        self.critic = nn.Sequential(
+                nn.Linear(embedding_size, 64),
+                nn.ReLU(),
+                nn.Linear(64, 1)
+            )
+        self.gamma = 0.9
+        self.batch_size = 1
+        self.learning_rate = 0.01
+        self.optimizer = optim.Adam(self.critic.parameters(), self.learning_rate)
+
+        
+    def forward(self, obs):
+        input_dim = len(obs.size())
+        assert input_dim == 4, "observation dimension expected to be 4, but got {}.".format(input_dim)
+        
+        # feature extractor
+        x = obs.transpose(1, 3) # [num_trans, channels, height, width]
+        x = self.image_conv(x)
+        x = x.reshape(x.shape[0], -1) # [num_trans, -1]
+        embedding = x
+        # embedding = self.fc(x)
+        value = self.critic(embedding).squeeze(1)
+        return value 
+    
+    def update_value(self, next_obs, reward, upp):
+        v_next = self.forward(next_obs)
+        updated_values = min(max(reward + self.gamma * v_next, 0), upp)
+        return updated_values
+    
+    def train_step(self, states, next_state_values):
+        self.optimizer.zero_grad()
+        predicted_values = self.critic(states).unsqueeze(1)
+        loss = nn.functional.mse_loss(predicted_values, next_state_values.unsqueeze(1))
+        loss.backward()
+        self.optimizer.step()
+        return loss
+

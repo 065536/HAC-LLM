@@ -164,7 +164,7 @@ class LSTMBase(NNBase):
         return dist, value, states
 
 
-class Critic(nn.Module):
+class Critic(NNBase):
     def __init__(self, obs_space, action_space):
         embedding_size, action_space = super().__init__(obs_space, action_space)
         self.critic = nn.Sequential(

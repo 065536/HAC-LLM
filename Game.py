@@ -60,9 +60,8 @@ class Game:
                                         self.logger.dir, 
                                         batch_size=self.batch_size, 
                                         recurrent=self.recurrent)
-        self.teacher_value_network = algos.Critic(self.obs_space,
-                                          self.action_space,
-                                         )
+        
+        self.teacher_value_network = algos.Critic(self.obs_space, self.action_space)
         self.teacher_value_network.load_state_dict(self.student_policy.critic.state_dict())
 
         # init buffer

@@ -125,9 +125,10 @@ class LSTMBase(NNBase):
         )
         
     def init_states(self, device, num_trajs=1):
+        print(111)
         return (torch.zeros(self.core.num_layers, num_trajs, self.core.hidden_size).to(device),
                 torch.zeros(self.core.num_layers, num_trajs, self.core.hidden_size).to(device))
-    print(111)
+        
 
     def forward(self, obs, masks, states):
         input_dim = len(obs.size())

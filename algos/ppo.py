@@ -138,14 +138,13 @@ class Critic():
     def __call__(self, state):
         return self.critic_network(state)
 
-    def update_value(self, next_obs, reward, upp):
+    
+    def train_step(self, obs, next_obs, reward, upp):
+        
+        value = self.critic_network(obs)
         v_next = self.critic_network(next_obs)
         reward = torch.tensor(reward, device=v_next.device)
-        updated_values = torch.minimum(torch.maximum(reward + self.gamma * v_next, torch.tensor(0, device=v_next.device)), torch.tensor(upp, device=v_next.device))
-        return updated_values
-    
-    def train_step(self, value, predicted_values):
-        
+        predicted_values = torch.minimum(torch.maximum(reward + self.gamma * v_next, torch.tensor(0, device=v_next.device)), torch.tensor(upp, device=v_next.device))
         print(f"predicted_values: {predicted_values.unsqueeze(1)}")
         print(f"value: {value.unsqueeze(1)}")
         loss = nn.functional.mse_loss(predicted_values.unsqueeze(1), value.unsqueeze(1))

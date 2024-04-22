@@ -145,8 +145,6 @@ class Critic():
         v_next = self.critic_network(next_obs).requires_grad_(True)
         reward = torch.tensor(reward, device=v_next.device)
         predicted_values = torch.minimum(torch.maximum(reward + self.gamma * v_next, torch.tensor(0, device=v_next.device)), torch.tensor(upp, device=v_next.device)).requires_grad_(True)
-        print(f"predicted_values: {predicted_values.unsqueeze(1)}")
-        print(f"value: {value.unsqueeze(1)}")
         loss = nn.functional.mse_loss(predicted_values.unsqueeze(1), value.unsqueeze(1)).requires_grad_(True)
         loss.backward()
         self.optimizer.step()

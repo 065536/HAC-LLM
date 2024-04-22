@@ -12,7 +12,7 @@ from .base import Base
 import numpy as np
 import torch
 import torch.nn.functional as F
-from model import Critic_network
+from .model import Critic_network
 import torch.optim as optim
 import torch.nn as nn
 

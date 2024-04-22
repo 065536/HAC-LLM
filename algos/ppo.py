@@ -12,6 +12,9 @@ from .base import Base
 import numpy as np
 import torch
 import torch.nn.functional as F
+from model import Critic_network
+import torch.optim as optim
+import torch.nn as nn
 
 class PPO(Base):
 
@@ -120,3 +123,32 @@ class PPO(Base):
         
         mean_losses = np.mean(losses, axis=0)
         return mean_losses
+
+
+class Critic():
+    def __init__(self, obs_space, action_space):
+        self.obs_space = obs_space
+        self.action_space = action_space
+        self.critic_network = Critic_network(self.obs_space, self.action_space)
+        self.gamma = 0.9
+        self.batch_size = 1
+        self.learning_rate = 0.01
+        self.optimizer = optim.Adam(self.critic_network.parameters(), self.learning_rate)
+
+    def __call__(self, state):
+        return self.critic_network(state)
+
+    def update_value(self, next_obs, reward, upp):
+        v_next = self.critic_network(next_obs)
+        reward = torch.tensor(reward, device=v_next.device)
+        updated_values = torch.minimum(torch.maximum(reward + self.gamma * v_next, torch.tensor(0, device=v_next.device)), upp)
+        return updated_values
+    
+    def train_step(self, value, predicted_values):
+        self.optimizer.zero_grad()
+        print(f"predicted_values: {predicted_values.unsqueeze(1)}")
+        print(f"value: {value.unsqueeze(1)}")
+        loss = nn.functional.mse_loss(predicted_values.unsqueeze(1), value.unsqueeze(1))
+        loss.backward()
+        self.optimizer.step()
+        return loss

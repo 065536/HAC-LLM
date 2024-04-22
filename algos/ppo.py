@@ -145,7 +145,7 @@ class Critic():
         return updated_values
     
     def train_step(self, value, predicted_values):
-        self.optimizer.zero_grad()
+        
         print(f"predicted_values: {predicted_values.unsqueeze(1)}")
         print(f"value: {value.unsqueeze(1)}")
         loss = nn.functional.mse_loss(predicted_values.unsqueeze(1), value.unsqueeze(1))

@@ -159,7 +159,7 @@ class Buffer:
                 mask            = torch.FloatTensor([1])
                 log_prob_batch  = log_probs[indices]
                 teacher_prob_batch = teacher_probs[indices]
-                teacher_value_batch = teacher_value_batch[indices]
+                teacher_value_batch = teacher_values[indices]
 
 
             yield obs_batch.to(self.device), action_batch.to(self.device), return_batch.to(self.device), advantage_batch.to(self.device), values_batch.to(self.device), mask.to(self.device), log_prob_batch.to(self.device), teacher_prob_batch.to(self.device), teacher_value_batch.to(self.device)

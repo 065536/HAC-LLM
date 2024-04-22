@@ -193,9 +193,10 @@ class Critic(NNBase):
     
     def update_value(self, next_obs, reward, upp):
         v_next = self.forward(next_obs)
+        reward = torch.tensor(reward, device=v_next.device)
         print(f"reward: {reward}")
         print(f"v_next: {v_next}")
-        updated_values = np.minimum(np.maximum(reward + self.gamma * v_next, 0), upp)
+        updated_values = torch.minimum(torch.maximum(reward + self.gamma * v_next, torch.tensor(0, device=v_next.device)), upp)
         return updated_values
     
     def train_step(self, states, next_state_values):

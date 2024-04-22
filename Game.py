@@ -62,7 +62,7 @@ class Game:
                                         recurrent=self.recurrent)
         
         self.teacher_value_network = algos.Critic(self.obs_space, self.action_space)
-        self.teacher_value_network.to(self.device)
+        self.teacher_value_network.critic_network.to(self.device)
 
         # init buffer
         self.gamma = args.gamma

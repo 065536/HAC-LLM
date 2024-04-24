@@ -56,12 +56,14 @@ class PPO(Base):
         self.ks_coef_minimum   = kickstarting_coef_minimum
         self.ks_coef_descent   = kickstarting_coef_decent
         self.value_loss_coef   = value_loss_coef
+        self.teacher_value_loss_coef   = value_loss_coef
         
         # other settings 
         self.batch_size        = batch_size
         self.epochs            = epoch
         self.num_worker        = num_worker
         self.iter              = 0
+        self.eplison = 1e-3
         
     def __call__(self, obs, mask, states):
         return self.model(obs, mask, states)
@@ -104,10 +106,15 @@ class PPO(Base):
                 value_dis_clipped = torch.clamp(teacher_value_batch - values_batch, -self.clip, self.clip)
                 value_dis_loss = value_dis_clipped.mean()
                 
-                loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_loss + self.value_loss_coef * value_dis_loss
+                loss = policy_loss + self.value_loss_coef * value_loss - self.entropy_coef * entropy_loss 
                 if self.iter < self.iter_with_ks:
                     loss += self.ks_coef * kickstarting_loss
+                
+                if self.teacher_value_loss_coef < self.eplison:
+                    loss += self.teacher_value_loss_coef * value_dis_loss
 
+                if self.iter % 10 == 1:
+                    self.teacher_value_loss_coef = self.teacher_value_loss_coef * 0.99
                 # Update actor-critic
                 self.optimizer.zero_grad()
                 loss.backward()

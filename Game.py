@@ -34,7 +34,7 @@ class Game:
         self.setup_seed(args.seed)
         self.train_step = 0
         # The discount factor of guidance
-        self.lam = 1
+        self.teacher_coff = 1
         self.epsilon = 1e-2
         
         # init env
@@ -135,9 +135,9 @@ class Game:
             except:
                 print(mean_losses)
 
-            # update lam
+            # update teacher_coff
             if self.train_step % 10 == 0:
-                self.lam = self.lam * 0.9
+                self.teacher_coff = self.teacher_coff * 0.9
 
             ## evaluate ##
             if itr % self.eval_interval == 0 and itr > 0:
@@ -217,10 +217,10 @@ class Game:
                 # get action from teacher policy
                 teacher_probs = self.teacher_policy(obs[0])
 
-                if self.lam > self.epsilon:
+                if self.teacher_coff > self.epsilon:
                     student_logits = dist.logits
                     teacher_probs_tensor = torch.tensor(teacher_probs, device=student_logits.device)
-                    guided_dist = student_logits + self.lam * teacher_probs_tensor.unsqueeze(0)
+                    guided_dist = student_logits + self.teacher_coff * teacher_probs_tensor.unsqueeze(0)
                     guided_dist = torch.softmax(guided_dist, dim=-1)
                     guided_dist =  torch.distributions.Categorical(logits=guided_dist)
                     dist = guided_dist
